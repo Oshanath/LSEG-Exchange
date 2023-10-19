@@ -3,9 +3,19 @@
 #
 
 # Add source to this project's executable.
-add_executable (TRADER "trader_app.cpp" "order.h" "rapidcsv.h")
+SET (TRADER_SOURCES
+	"Trader/src/trader_app.cpp"
+)
+add_executable (TRADER  ${TRADER_SOURCES})
+target_include_directories(TRADER PUBLIC "include" "Trader/include")
+target_link_libraries(TRADER sockpp)
 
-add_executable (EXCHANGE "exchange_app.cpp" "order.h")
+SET (EXCHANGE_SOURCES
+	"Exchange/src/exchange_app.cpp"
+)
+add_executable (EXCHANGE  ${EXCHANGE_SOURCES})
+target_include_directories(EXCHANGE PUBLIC "include" "Exchange/include")
+target_link_libraries(EXCHANGE sockpp)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET TRADER PROPERTY CXX_STANDARD 20)

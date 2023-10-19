@@ -13,3 +13,4 @@ project ("LSEG")
 
 # Include sub-projects.
 add_subdirectory ("LSEG")
+add_subdirectory ("sockpp")
