@@ -5,36 +5,51 @@
 #include "sockpp/tcp_acceptor.h"
 #include "order.h"
 
-void run_echo(sockpp::tcp_socket sock)
+void connection_callback(sockpp::tcp_socket sock)
 {
 	ssize_t n;
-	unsigned char buf[512];
+	unsigned char data_size_buf[512];
 	unsigned int size = 0;
 
+	unsigned char return_buf[1];
+
 	// read buffer size
-	if (n = sock.read(buf, sizeof(buf)) == 4)
+	if (n = sock.read(data_size_buf, sizeof(data_size_buf)) == 4)
 	{
-		buf[0] = 1;
-		sock.write_n(buf, 1);
+		return_buf[0] = 1;
+		sock.write_n(return_buf, 1);
+	}
+	else
+	{
+		return_buf[0] = 0;
+		sock.write_n(return_buf, 1);
+		throw std::runtime_error("Did not receive 4 bytes for the data size.");
 	}
 
+	// construct data size
 	for (int i = 0; i < 4; i++)
 	{
 		size <<= 8;
-		size |= (unsigned char)buf[i];
+		size |= (unsigned char)data_size_buf[i];
 	}
-	std::cout << "received " << size << "\n";
+	std::cout << "Data size = " << size << " bytes.\n";
 
+	// read data
 	unsigned char* data = new unsigned char[size];
 	if ((n = sock.read(data, size)) == size)
 	{
-		buf[0] = 1;
-		sock.write_n(buf, 1);
+		return_buf[0] = 1;
+		sock.write_n(return_buf, 1);
+	}
+	else
+	{
+		return_buf[0] = 0;
+		sock.write_n(return_buf, 1);
+		throw std::runtime_error("Did not receive the correct number of bytes for the data size.");
 	}
 
 	std::vector<Order> orders(size / sizeof(Order));
 	memcpy(orders.data(), data, size);
-
 	delete[] data;
 
 	for (auto& order : orders)
@@ -46,8 +61,6 @@ void run_echo(sockpp::tcp_socket sock)
 
 int main(int argc, char* argv[])
 {
-	std::cout << "Sample TCP echo server for 'sockpp' " << '\n' << std::endl;
-
 	in_port_t port = 8080;
 	sockpp::initialize();
 	sockpp::tcp_acceptor acc(port);
@@ -60,8 +73,6 @@ int main(int argc, char* argv[])
 
 	while (true) {
 		sockpp::inet_address peer;
-
-		// Accept a new client connection
 		sockpp::tcp_socket sock = acc.accept(&peer);
 		std::cout << "Received a connection request from " << peer << std::endl;
 
@@ -70,8 +81,7 @@ int main(int argc, char* argv[])
 				<< acc.last_error_str() << std::endl;
 		}
 		else {
-			// Create a thread and transfer the new stream to it.
-			std::thread thr(run_echo, std::move(sock));
+			std::thread thr(connection_callback, std::move(sock));
 			thr.detach();
 		}
 	}

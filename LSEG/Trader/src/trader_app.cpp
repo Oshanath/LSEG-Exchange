@@ -8,19 +8,57 @@
 
 std::vector<Order> read_orders(std::string filename);
 
+void send_data_size(sockpp::tcp_connector& conn, unsigned int size)
+{
+
+	unsigned char s[4], sret[1];
+	unsigned int data_size = size;
+	for (int i = 0; i < 4; i++)
+	{
+		s[3 - i] = (data_size >> (i * 8)) & 0xFF;
+	}
+
+	if (conn.write(s, 4) != 4) {
+		std::cerr << "Error writing to the TCP stream: "
+			<< conn.last_error_str() << std::endl;
+	}
+
+	ssize_t n = conn.read_n(sret, 1);
+
+	if (n != ssize_t(1)) {
+		std::cerr << "Error reading from TCP stream: "
+			<< conn.last_error_str() << std::endl;
+	}
+
+	std::cout << int(sret[0]) << std::endl;
+}
+
+void send_data(sockpp::tcp_connector& conn, std::vector<Order>& orders, unsigned int data_size)
+{
+	unsigned char sret[1];
+
+	if (conn.write(orders.data(), data_size) != data_size) {
+		std::cerr << "Error writing to the TCP stream: "
+			<< conn.last_error_str() << std::endl;
+	}
+
+	ssize_t n = conn.read_n(sret, 1);
+
+	if (n != ssize_t(1)) {
+		std::cerr << "Error reading from TCP stream: "
+			<< conn.last_error_str() << std::endl;
+	}
+
+	std::cout << int(sret[0]) << std::endl;
+}
+
 int main()
 {
 	std::vector<Order> orders = read_orders("orders.csv");
-
-	std::cout << "Sample TCP echo client for 'sockpp' " << '\n' << std::endl;
-
 	std::string host = "localhost";
 	in_port_t port = 8080;
+
 	sockpp::initialize();
-
-	// Implicitly creates an inet_address from {host,port}
-	// and then tries the connection.
-
 	sockpp::tcp_connector conn({ host, port }, std::chrono::seconds{ 5 });
 	if (!conn) {
 		std::cerr << "Error connecting to server at "
@@ -37,44 +75,9 @@ int main()
 			<< conn.last_error_str() << std::endl;
 	}
 
-	unsigned char s[4], sret[1];
-	unsigned int number = orders.size() * sizeof(Order);
-	for (int i = 0; i < 4; i++)
-	{
-		s[3 - i] = (number >> (i * 8)) & 0xFF;
-	}
-
-	if (conn.write(s, 4) != 4) {
-		std::cerr << "Error writing to the TCP stream: "
-			<< conn.last_error_str() << std::endl;
-	}
-
-	ssize_t n = conn.read_n(sret, 1);
-
-	if (n != ssize_t(1)) {
-		std::cerr << "Error reading from TCP stream: "
-			<< conn.last_error_str() << std::endl;
-	}
-
-	std::cout << int(sret[0]) << std::endl;
-
-
-	// Write data
-	if (conn.write(orders.data(), number) != number) {
-		std::cerr << "Error writing to the TCP stream: "
-			<< conn.last_error_str() << std::endl;
-	}
-
-	n = conn.read_n(sret, 1);
-
-	if (n != ssize_t(1)) {
-		std::cerr << "Error reading from TCP stream: "
-			<< conn.last_error_str() << std::endl;
-	}
-
-	std::cout << int(sret[0]) << std::endl;
-
-
+	unsigned int data_size = orders.size() * sizeof(Order);
+	send_data_size(conn, data_size);
+	send_data(conn, orders, data_size);
 
 	return (!conn) ? 1 : 0;
 	
