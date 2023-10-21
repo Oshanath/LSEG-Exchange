@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <fstream>
 #include <vector>
+#include <chrono>
 
 #include "order.h"
 #include "rapidcsv.h"
@@ -56,30 +57,37 @@ int main()
 {
 	std::vector<Order> orders = read_orders("orders.csv");
 	std::string host = "localhost";
-	in_port_t port = 8080;
+	in_port_t port = 8083;
 
-	sockpp::initialize();
-	sockpp::tcp_connector conn({ host, port }, std::chrono::seconds{ 5 });
-	if (!conn) {
-		std::cerr << "Error connecting to server at "
-			<< sockpp::inet_address(host, port)
-			<< "\n\t" << conn.last_error_str() << std::endl;
-		return 1;
+	while (true)
+	{
+		sockpp::initialize();
+		sockpp::tcp_connector conn({ host, port }, std::chrono::seconds{ 5 });
+		if (!conn) {
+			std::cerr << "Cannot connect to server at "
+				<< sockpp::inet_address(host, port)
+				<< "\n\t" << conn.last_error_str() << std::endl;
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+			continue;
+		}
+
+		std::cout << "Created a connection from " << conn.address() << std::endl;
+
+		// Set a timeout for the responses
+		if (!conn.read_timeout(std::chrono::seconds(1))) {
+			std::cerr << "Error setting timeout on TCP stream: "
+				<< conn.last_error_str() << std::endl;
+		}
+
+		unsigned int data_size = orders.size() * sizeof(Order);
+		send_data_size(conn, data_size);
+		send_data(conn, orders, data_size);
+
+		std::string a;
+		getline(std::cin, a);
 	}
 
-	std::cout << "Created a connection from " << conn.address() << std::endl;
-
-	// Set a timeout for the responses
-	if (!conn.read_timeout(std::chrono::seconds(5))) {
-		std::cerr << "Error setting timeout on TCP stream: "
-			<< conn.last_error_str() << std::endl;
-	}
-
-	unsigned int data_size = orders.size() * sizeof(Order);
-	send_data_size(conn, data_size);
-	send_data(conn, orders, data_size);
-
-	return (!conn) ? 1 : 0;
+	//return (!conn) ? 1 : 0;
 	
 }
 

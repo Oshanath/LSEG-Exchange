@@ -48,11 +48,12 @@ void connection_callback(sockpp::tcp_socket sock)
 		throw std::runtime_error("Did not receive the correct number of bytes for the data size.");
 	}
 
-	std::vector<Order> orders(size / sizeof(Order));
-	memcpy(orders.data(), data, size);
+	auto orders = new std::vector<Order>(size / sizeof(Order));
+	//std::vector<Order> orders(size / sizeof(Order));
+	memcpy(orders->data(), data, size);
 	delete[] data;
 
-	for (auto& order : orders)
+	for (auto& order : *orders)
 	{
 		std::cout << order.order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
 	}
@@ -61,7 +62,7 @@ void connection_callback(sockpp::tcp_socket sock)
 
 int main(int argc, char* argv[])
 {
-	in_port_t port = 8080;
+	in_port_t port = 8083;
 	sockpp::initialize();
 	sockpp::tcp_acceptor acc(port);
 
