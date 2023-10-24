@@ -4,13 +4,16 @@
 #include <string>
 #include <iostream>
 
+using time_stamp = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
+
 enum Instrument
 {
 	ROSE,
 	LAVENDER,
 	LOTUS,
 	TULIP,
-	ORCHID
+	ORCHID,
+	count
 };
 
 std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
@@ -143,5 +146,63 @@ struct Order
 		return orders;
 	}
 };
+
+struct OrderBookEntry : public Order
+{
+	time_stamp ts;
+
+	OrderBookEntry() = delete;
+
+	OrderBookEntry(Order order) :
+		Order(order),
+		ts(std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()))
+	{}
+
+	friend std::ostream& operator<<(std::ostream& os, const OrderBookEntry& order_book_entry);
+};
+
+std::ostream& operator<<(std::ostream& os, const OrderBookEntry& order_book_entry)
+{
+	os << order_book_entry.order_id << " " << order_book_entry.instrument << " " << order_book_entry.side << " " << order_book_entry.quantity << " " << order_book_entry.price << " " << order_book_entry.trader_id << " " << order_book_entry.ts.time_since_epoch().count();
+	return os;
+}
+
+struct BuyOrder : public OrderBookEntry
+{
+	BuyOrder() = delete;
+
+	BuyOrder(Order order) :
+		OrderBookEntry(order)
+	{}
+
+	friend bool operator < (const BuyOrder& lhs, const BuyOrder& rhs);
+};
+
+struct SellOrder : public OrderBookEntry
+{
+	SellOrder() = delete;
+
+	SellOrder(Order order) :
+		OrderBookEntry(order)
+	{}
+
+	friend bool operator < (const SellOrder& lhs, const SellOrder& rhs);
+};
+
+bool operator < (const BuyOrder& lhs, const BuyOrder& rhs)
+{
+	if (lhs.price != rhs.price)
+		return lhs.price > rhs.price;
+	else
+		return lhs.ts < rhs.ts;
+}
+
+bool operator < (const SellOrder& lhs, const SellOrder& rhs)
+{
+	if (lhs.price != rhs.price)
+		return lhs.price < rhs.price;
+	else
+		return lhs.ts < rhs.ts;
+}
 
 #endif // ORDER_H

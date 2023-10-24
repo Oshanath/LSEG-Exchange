@@ -4,6 +4,7 @@
 
 #include "sockpp/tcp_acceptor.h"
 #include "order.h"
+#include "order_processor.h"
 
 void connection_callback(sockpp::tcp_socket sock)
 {
@@ -53,6 +54,7 @@ void connection_callback(sockpp::tcp_socket sock)
 		std::cout << order.order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
 	}
 
+	process_orders(orders);
 }
 
 int main(int argc, char* argv[])
