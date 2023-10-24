@@ -13,11 +13,9 @@ void send_data_size(sockpp::tcp_connector& conn, unsigned int size)
 {
 
 	unsigned char s[4], sret[1];
+
 	unsigned int data_size = size;
-	for (int i = 0; i < 4; i++)
-	{
-		s[3 - i] = (data_size >> (i * 8)) & 0xFF;
-	}
+	memcpy(s, &data_size, 4);
 
 	if (conn.write(s, 4) != 4) {
 		std::cerr << "Error writing to the TCP stream: "
@@ -34,11 +32,25 @@ void send_data_size(sockpp::tcp_connector& conn, unsigned int size)
 	std::cout << int(sret[0]) << std::endl;
 }
 
-void send_data(sockpp::tcp_connector& conn, std::vector<Order>& orders, unsigned int data_size)
+std::vector<char> serialize_data(std::vector<Order>& orders)
+{
+	std::vector<char> data;
+	for (auto& order : orders)
+	{
+		auto order_data = order.serialize();
+		data.insert(data.end(), order_data.begin(), order_data.end());
+	}
+
+	return data;
+}
+
+void send_data(sockpp::tcp_connector& conn, std::vector<char>& data)
 {
 	unsigned char sret[1];
 
-	if (conn.write(orders.data(), data_size) != data_size) {
+	std::cout << "Data size is " << data.size() << " bytes.\n";
+
+	if (conn.write(data.data(), data.size()) != data.size()) {
 		std::cerr << "Error writing to the TCP stream: "
 			<< conn.last_error_str() << std::endl;
 	}
@@ -79,15 +91,13 @@ int main()
 				<< conn.last_error_str() << std::endl;
 		}
 
-		unsigned int data_size = orders.size() * sizeof(Order);
-		send_data_size(conn, data_size);
-		send_data(conn, orders, data_size);
+		std::vector<char> data = serialize_data(orders);
+		send_data_size(conn, data.size());
+		send_data(conn, data);
 
 		std::string a;
 		getline(std::cin, a);
 	}
-
-	//return (!conn) ? 1 : 0;
 	
 }
 

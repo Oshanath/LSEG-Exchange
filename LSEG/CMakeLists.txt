@@ -2,8 +2,6 @@
 # project specific logic here.
 #
 
-find_package(sockpp REQUIRED)
-
 # Add source to this project's executable.
 SET (TRADER_SOURCES
 	"Trader/src/trader_app.cpp"

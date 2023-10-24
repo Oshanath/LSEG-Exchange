@@ -27,11 +27,7 @@ void connection_callback(sockpp::tcp_socket sock)
 	}
 
 	// construct data size
-	for (int i = 0; i < 4; i++)
-	{
-		size <<= 8;
-		size |= (unsigned char)data_size_buf[i];
-	}
+	memcpy(&size, data_size_buf, 4);
 	std::cout << "Data size = " << size << " bytes.\n";
 
 	// read data
@@ -48,12 +44,11 @@ void connection_callback(sockpp::tcp_socket sock)
 		throw std::runtime_error("Did not receive the correct number of bytes for the data size.");
 	}
 
-	auto orders = new std::vector<Order>(size / sizeof(Order));
-	//std::vector<Order> orders(size / sizeof(Order));
-	memcpy(orders->data(), data, size);
+	auto data_vec = std::vector<char>(data, data + size);
+	std::vector<Order> orders = Order::deserialize_order_array(data_vec);
 	delete[] data;
 
-	for (auto& order : *orders)
+	for (auto& order : orders)
 	{
 		std::cout << order.order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
 	}
