@@ -21,22 +21,19 @@ std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
 	switch (instrument)
 	{
 	case ROSE:
-		os << "ROSE";
+		os << "Rose";
 		break;
 	case LAVENDER:
-		os << "LAVENDER";
+		os << "Lavender";
 		break;
 	case LOTUS:
-		os << "LOTUS";
+		os << "Lotus";
 		break;
 	case TULIP:
-		os << "TULIP";
+		os << "Tulip";
 		break;
 	case ORCHID:
-		os << "ORCHID";
-		break;
-	default:
-		os << "UNKNOWN";
+		os << "Orchid";
 		break;
 	}
 	return os;

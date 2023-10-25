@@ -10,6 +10,8 @@ class OrderBook
 {
 
 public:
+	inline OrderBook(ReportGenerator& report_generator) : report_generator(report_generator) {}
+
 	inline void add_order(Order order, bool pfill = false)
 	{
 
@@ -40,13 +42,13 @@ public:
 				if (order.side == BUY)
 				{
 					OrderBookEntry entry(order);
-					report_generator.generate_fill_report(&entry, &(*sell_orders.begin()));
+					report_generator.generate_fill_report(&entry, &(*sell_orders.begin()), sell_orders.begin()->price);
 					sell_orders.erase(sell_orders.begin());
 				}
 				else
 				{
 					OrderBookEntry entry(order);
-					report_generator.generate_fill_report(&entry, &(*buy_orders.begin()));
+					report_generator.generate_fill_report(&entry, &(*buy_orders.begin()), buy_orders.begin()->price);
 					buy_orders.erase(buy_orders.begin());
 				}
 
@@ -57,14 +59,14 @@ public:
 				{
 					order.quantity -= sell_orders.begin()->quantity;
 					OrderBookEntry entry(order);
-					report_generator.generate_pfill_report(&(*sell_orders.begin()), &entry, sell_orders.begin()->quantity);
+					report_generator.generate_pfill_report(&(*sell_orders.begin()), &entry, sell_orders.begin()->quantity, sell_orders.begin()->price);
 					sell_orders.erase(sell_orders.begin());
 				}
 				else
 				{
 					order.quantity -= buy_orders.begin()->quantity;
 					OrderBookEntry entry(order);
-					report_generator.generate_pfill_report(&(*buy_orders.begin()), &entry, buy_orders.begin()->quantity);
+					report_generator.generate_pfill_report(&(*buy_orders.begin()), &entry, buy_orders.begin()->quantity, buy_orders.begin()->price);
 					buy_orders.erase(buy_orders.begin());
 				}
 				add_order(order, true);
@@ -80,7 +82,7 @@ public:
 					std::pair<std::set<SellOrder>::iterator, bool> result = sell_orders.insert(sell_order);
 
 					OrderBookEntry entry(order);
-					report_generator.generate_pfill_report(&entry, &(*result.first), order.quantity);
+					report_generator.generate_pfill_report(&entry, &(*result.first), order.quantity, result.first->price);
 				}
 				else
 				{
@@ -90,7 +92,7 @@ public:
 					std::pair<std::set<BuyOrder>::iterator, bool> result = buy_orders.insert(buy_order);
 
 					OrderBookEntry entry(order);
-					report_generator.generate_pfill_report(&entry, &(*result.first), order.quantity);
+					report_generator.generate_pfill_report(&entry, &(*result.first), order.quantity, result.first->price);
 				}
 
 				break;
@@ -102,7 +104,7 @@ public:
 private:
 	std::set<BuyOrder> buy_orders;
 	std::set<SellOrder> sell_orders;
-	ReportGenerator report_generator;
+	ReportGenerator& report_generator;
 
 	bool is_aggressive(Order& order)
 	{

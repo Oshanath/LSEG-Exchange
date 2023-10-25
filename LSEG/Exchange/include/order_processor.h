@@ -14,12 +14,14 @@ inline void print_order_books(std::vector<OrderBook> order_books)
 
 inline void process_orders(std::vector<Order> orders)
 {
-	std::vector<OrderBook> order_books(Instrument::count);
+	ReportGenerator report_generator;
+	std::vector<OrderBook> order_books(Instrument::count, report_generator);
 
 	for (auto& order : orders)
 	{
 		order_books[order.instrument].add_order(order);
 	}
 
-	print_order_books(order_books);
+	std::cout << "Reports:\n";
+	std::cout << report_generator;
 }
