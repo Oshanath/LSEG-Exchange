@@ -51,7 +51,7 @@ void connection_callback(sockpp::tcp_socket sock)
 
 	for (auto& order : orders)
 	{
-		std::cout << order.order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
+		std::cout << order.client_order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
 	}
 
 	process_orders(orders);

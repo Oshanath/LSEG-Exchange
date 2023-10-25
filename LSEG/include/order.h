@@ -56,7 +56,8 @@ std::ostream& operator<<(std::ostream& os, const Side& side)
 
 struct Order 
 {
-	std::string order_id;
+	int order_id;
+	std::string client_order_id;
 	Instrument instrument;
 	Side side;
 	int quantity;
@@ -67,8 +68,8 @@ struct Order
 	{
 		std::vector<char> data;
 		
-		for(int i = 0; i < order_id.length(); i++)
-			data.push_back(order_id[i]);
+		for(int i = 0; i < client_order_id.length(); i++)
+			data.push_back(client_order_id[i]);
 		data.push_back('\0');
 
 		data.push_back(instrument);
@@ -101,7 +102,7 @@ struct Order
 		int i = 0;
 		while (data[i] != '\0')
 		{
-			order_id += data[i];
+			client_order_id += data[i];
 			i++;
 		}
 		i++;
@@ -130,6 +131,7 @@ struct Order
 	{
 		std::vector<Order> orders;
 		int i = 0;
+		int order_count = 1;
 
 		while (i < data.size())
 		{
@@ -137,6 +139,7 @@ struct Order
 			memcpy(&order_size, data.data(), 4);
 
 			Order order;
+			order.order_id = order_count++;
 			order.deserialize(std::vector<char>(data.begin() + 4 + i, data.begin() + 4 + order_size + i));
 			orders.push_back(order);
 
@@ -163,7 +166,10 @@ struct OrderBookEntry : public Order
 
 std::ostream& operator<<(std::ostream& os, const OrderBookEntry& order_book_entry)
 {
-	os << order_book_entry.order_id << " " << order_book_entry.instrument << " " << order_book_entry.side << " " << order_book_entry.quantity << " " << order_book_entry.price << " " << order_book_entry.trader_id << " " << order_book_entry.ts.time_since_epoch().count();
+	os << order_book_entry.order_id << " " << order_book_entry.client_order_id << " " << 
+		order_book_entry.instrument << " " << order_book_entry.side << " " << 
+		order_book_entry.quantity << " " << order_book_entry.price << " " << 
+		order_book_entry.trader_id << " " << order_book_entry.ts.time_since_epoch().count();
 	return os;
 }
 

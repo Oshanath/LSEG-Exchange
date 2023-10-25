@@ -126,7 +126,7 @@ std::vector<Order> read_orders(std::string filename)
 	for (int i = 0; i < doc.GetRowCount(); i++)
 	{
 		Order order;
-		order.order_id = doc.GetCell<std::string>(0, i);
+		order.client_order_id = doc.GetCell<std::string>(0, i);
 		order.instrument = get_instrument(doc.GetCell<std::string>(1, i));
 		order.side = Side(doc.GetCell<int>(2, i));
 		order.quantity = doc.GetCell<int>(3, i);

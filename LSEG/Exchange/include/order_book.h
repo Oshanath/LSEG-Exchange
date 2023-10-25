@@ -4,6 +4,7 @@
 
 #include "order.h"
 #include "execution_type.h"
+#include "report_generator.h"
 
 class OrderBook
 {
@@ -16,59 +17,80 @@ public:
 
 		switch (execution_type)
 		{
-			case NORMAL:
+			case ExecutionType::NORMAL:
+
 				if (order.side == BUY)
 				{
-					buy_orders.emplace(order);
+					std::pair<std::set<BuyOrder>::iterator, bool> result = buy_orders.emplace(order);
+
+					if(!pfill)
+						report_generator.generate_normal_report(&(*result.first));
 				}
 				else
 				{
-					sell_orders.emplace(order);
+					std::pair<std::set<SellOrder>::iterator, bool> result = sell_orders.emplace(order);
+
+					if(!pfill)
+						report_generator.generate_normal_report(&(*result.first));
 				}
 
 				break;
 
-			case FILL:
+			case ExecutionType::FILL:
 				if (order.side == BUY)
 				{
+					OrderBookEntry entry(order);
+					report_generator.generate_fill_report(&entry, &(*sell_orders.begin()));
 					sell_orders.erase(sell_orders.begin());
 				}
 				else
 				{
+					OrderBookEntry entry(order);
+					report_generator.generate_fill_report(&entry, &(*buy_orders.begin()));
 					buy_orders.erase(buy_orders.begin());
 				}
 
 				break;
 
-			case NEW_PFILL:
+			case ExecutionType::NEW_PFILL:
 				if (order.side == BUY)
 				{
 					order.quantity -= sell_orders.begin()->quantity;
+					OrderBookEntry entry(order);
+					report_generator.generate_pfill_report(&(*sell_orders.begin()), &entry, sell_orders.begin()->quantity);
 					sell_orders.erase(sell_orders.begin());
 				}
 				else
 				{
 					order.quantity -= buy_orders.begin()->quantity;
+					OrderBookEntry entry(order);
+					report_generator.generate_pfill_report(&(*buy_orders.begin()), &entry, buy_orders.begin()->quantity);
 					buy_orders.erase(buy_orders.begin());
 				}
 				add_order(order, true);
 
 				break;
 
-			case OLD_PFILL:
+			case ExecutionType::OLD_PFILL:
 				if (order.side == BUY)
 				{
 					Order sell_order = *sell_orders.begin();
 					sell_order.quantity -= order.quantity;
 					sell_orders.erase(sell_orders.begin());
-					sell_orders.insert(sell_order);
+					std::pair<std::set<SellOrder>::iterator, bool> result = sell_orders.insert(sell_order);
+
+					OrderBookEntry entry(order);
+					report_generator.generate_pfill_report(&entry, &(*result.first), order.quantity);
 				}
 				else
 				{
 					Order buy_order = *buy_orders.begin();
 					buy_order.quantity -= order.quantity;
 					buy_orders.erase(buy_orders.begin());
-					buy_orders.insert(buy_order);
+					std::pair<std::set<BuyOrder>::iterator, bool> result = buy_orders.insert(buy_order);
+
+					OrderBookEntry entry(order);
+					report_generator.generate_pfill_report(&entry, &(*result.first), order.quantity);
 				}
 
 				break;
@@ -80,6 +102,7 @@ public:
 private:
 	std::set<BuyOrder> buy_orders;
 	std::set<SellOrder> sell_orders;
+	ReportGenerator report_generator;
 
 	bool is_aggressive(Order& order)
 	{
@@ -100,7 +123,7 @@ private:
 
 		if (!is_aggressive(new_order))
 		{
-			return NORMAL;
+			return ExecutionType::NORMAL;
 		}
 
 		const OrderBookEntry* matching_order;
@@ -113,13 +136,13 @@ private:
 		if (new_order.quantity != matching_order->quantity)
 		{
 			if (new_order.quantity < matching_order->quantity)
-				return OLD_PFILL;
+				return ExecutionType::OLD_PFILL;
 			else
-				return NEW_PFILL;
+				return ExecutionType::NEW_PFILL;
 		}
 		else
 		{
-			return FILL;
+			return ExecutionType::FILL;
 		}
 	}
 
