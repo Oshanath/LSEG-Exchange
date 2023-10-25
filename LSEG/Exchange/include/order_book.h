@@ -1,7 +1,9 @@
 #include <set>
 #include <iostream>
+#include <memory>
 
 #include "order.h"
+#include "execution_type.h"
 
 class OrderBook
 {
@@ -10,90 +12,117 @@ public:
 	inline void add_order(Order order, bool pfill = false)
 	{
 
-		auto sell_top = sell_orders.begin();
-		auto buy_top = buy_orders.begin();
+		ExecutionType execution_type = get_execution_type(order);
 
-		if (order.side == BUY)
+		switch (execution_type)
 		{
-			if (sell_top == sell_orders.end() || order.price < sell_top->price)
-			{
-				// Normal Execution
-
-				buy_orders.insert(BuyOrder(order));
-				// generate report
-			}
-			else if (order.quantity != sell_top->quantity)
-			{
-				// PFill execution for either side
-
-				if (order.quantity < sell_top->quantity)
+			case NORMAL:
+				if (order.side == BUY)
 				{
-					// generate fill report for new buy order
-					// generate pfill report for sell_top
-					sell_top->quantity -= order.quantity;
+					buy_orders.emplace(order);
 				}
 				else
 				{
-					// generate fill report for sell_top
-					// generate pfill report for new buy order
-					sell_orders.erase(sell_top);
-					order.quantity = order.quantity - sell_top->quantity;
-					add_order(order, true);
+					sell_orders.emplace(order);
 				}
-			}
-			else
-			{
-				// Fill execution
 
-				// generate report
-				// generate report
-				sell_orders.erase(sell_top);
-			}
-		}
-		else
-		{
-			if (buy_top == buy_orders.end() || order.price > buy_top->price)
-			{
-				// Normal Execution
+				break;
 
-				sell_orders.insert(SellOrder(order));
-				// generate report
-			}
-			else if (order.quantity != buy_top->quantity)
-			{
-				// PFill execution for either side
-
-				if (order.quantity < buy_top->quantity)
+			case FILL:
+				if (order.side == BUY)
 				{
-					// generate fill report for new sell order
-					// generate pfill report for buy_top
-					buy_top->quantity -= order.quantity;
+					sell_orders.erase(sell_orders.begin());
 				}
 				else
 				{
-					// generate fill report for buy_top
-					// generate pfill report for new sell order
-					buy_orders.erase(buy_top);
-					order.quantity = order.quantity - buy_top->quantity;
-					add_order(order, true);
+					buy_orders.erase(buy_orders.begin());
 				}
-			}
-			else
-			{
-				// Fill execution
 
-				// generate report
-				// generate report
-				buy_orders.erase(buy_top);
-			}
+				break;
+
+			case NEW_PFILL:
+				if (order.side == BUY)
+				{
+					order.quantity -= sell_orders.begin()->quantity;
+					sell_orders.erase(sell_orders.begin());
+				}
+				else
+				{
+					order.quantity -= buy_orders.begin()->quantity;
+					buy_orders.erase(buy_orders.begin());
+				}
+				add_order(order, true);
+
+				break;
+
+			case OLD_PFILL:
+				if (order.side == BUY)
+				{
+					Order sell_order = *sell_orders.begin();
+					sell_order.quantity -= order.quantity;
+					sell_orders.erase(sell_orders.begin());
+					sell_orders.insert(sell_order);
+				}
+				else
+				{
+					Order buy_order = *buy_orders.begin();
+					buy_order.quantity -= order.quantity;
+					buy_orders.erase(buy_orders.begin());
+					buy_orders.insert(buy_order);
+				}
+
+				break;
 		}
 	}
+
+	friend std::ostream& operator<<(std::ostream& os, const OrderBook& order_book);
 
 private:
 	std::set<BuyOrder> buy_orders;
 	std::set<SellOrder> sell_orders;
 
-	friend std::ostream& operator<<(std::ostream& os, const OrderBook& order_book);
+	bool is_aggressive(Order& order)
+	{
+		auto sell_top = sell_orders.begin();
+		auto buy_top = buy_orders.begin();
+
+		if (order.side == BUY && (sell_top == sell_orders.end() || order.price < sell_top->price))
+			return false;
+		
+		else if (order.side == SELL && (buy_top == buy_orders.end() || order.price > buy_top->price))
+			return false;
+
+		return true;
+	}
+
+	ExecutionType get_execution_type(Order& new_order)
+	{
+
+		if (!is_aggressive(new_order))
+		{
+			return NORMAL;
+		}
+
+		const OrderBookEntry* matching_order;
+
+		if (new_order.side == BUY)
+			matching_order = &(*sell_orders.begin());
+		else
+			matching_order = &(*buy_orders.begin());
+
+		if (new_order.quantity != matching_order->quantity)
+		{
+			if (new_order.quantity < matching_order->quantity)
+				return OLD_PFILL;
+			else
+				return NEW_PFILL;
+		}
+		else
+		{
+			return FILL;
+		}
+	}
+
 };
 
 std::ostream& operator<<(std::ostream& os, const OrderBook& order_book)
