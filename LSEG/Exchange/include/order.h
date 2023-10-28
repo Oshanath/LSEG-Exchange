@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 
 using time_stamp = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
 
@@ -39,16 +40,57 @@ std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
 	return os;
 }
 
+std::pair<Instrument, bool> get_instrument(std::string& name)
+{
+	if (name == "Rose")
+		return std::make_pair<Instrument,bool>(Instrument::ROSE, true);
+	else if (name == "Lavender")
+		return std::make_pair<Instrument, bool>(Instrument::LAVENDER, true);
+	else if (name == "Lotus")
+		return std::make_pair<Instrument, bool>(Instrument::LOTUS, true);
+	else if (name == "Tulip")
+		return std::make_pair<Instrument, bool>(Instrument::TULIP, true);
+	else if (name == "Orchid")
+		return std::make_pair<Instrument, bool>(Instrument::ORCHID, true);
+	else
+		return std::make_pair<Instrument, bool>(Instrument::ROSE, false);
+}
+
 enum Side
 {
 	BUY = 1,
 	SELL = 2
 };
 
+std::pair<Side,bool> get_side(std::string& name)
+{
+	if (name == "1")
+		return std::make_pair<Side, bool>(Side::BUY, true);
+	else if (name == "2")
+		return std::make_pair<Side, bool>(Side::SELL, true);
+	else
+		return std::make_pair<Side, bool>(Side::BUY, false);
+}
+
 std::ostream& operator<<(std::ostream& os, const Side& side)
 {
 	os << int(side);
 	return os;
+}
+
+std::string deserialize_string(const std::vector<char>& data, int& i)
+{
+	std::stringstream ss;
+
+	for(; i < data.size(); ++i)
+	{
+		if (data[i] == '\0')
+			break;
+		else
+			ss << data[i];
+	}
+	i++;
+	return ss.str();
 }
 
 struct Order 
@@ -61,67 +103,25 @@ struct Order
 	float price;
 	std::string trader_id;
 
-	std::vector<char> serialize()
-	{
-		std::vector<char> data;
-		
-		for(int i = 0; i < client_order_id.length(); i++)
-			data.push_back(client_order_id[i]);
-		data.push_back('\0');
-
-		data.push_back(instrument);
-
-		data.push_back(side);
-
-		data.resize(data.size() + 4);
-		memcpy(data.data() + data.size() - 4, &quantity, 4);
-
-		data.resize(data.size() + 4);
-		memcpy(data.data() + data.size() - 4, &price, 4);
-
-		for (int i = 0; i < trader_id.length(); i++)
-			data.push_back(trader_id[i]);
-		data.push_back('\0');
-
-		std::vector<char> final_data;
-
-		// first 4 bytes contain data size and then whole data vector
-		final_data.resize(4 + data.size());
-		int size = data.size();
-		memcpy(final_data.data(), &size, 4);
-		memcpy(final_data.data() + 4, data.data(), data.size());
-
-		return final_data;
-	}
-
 	void deserialize(std::vector<char> data)
 	{
+
 		int i = 0;
-		while (data[i] != '\0')
-		{
-			client_order_id += data[i];
-			i++;
-		}
-		i++;
+		client_order_id = deserialize_string(data, i);
 
-		instrument = Instrument(data[i]);
-		i++;
+		std::string instrument_string = deserialize_string(data, i);
+		instrument = get_instrument(instrument_string).first;
 
-		side = Side(data[i]);
-		i++;
+		std::string side_string = deserialize_string(data, i);
+		side = get_side(side_string).first;
 
-		memcpy(&quantity, data.data() + i, 4);
-		i += 4;
+		std::string quantity_string = deserialize_string(data, i);
+		quantity = std::stoi(quantity_string);
 
-		memcpy(&price, data.data() + i, 4);
-		i += 4;
+		std::string price_string = deserialize_string(data, i);
+		price = std::stof(price_string);
 
-		while (data[i] != '\0')
-		{
-			trader_id += data[i];
-			i++;
-		}
-		i++;
+		trader_id = deserialize_string(data, i);
 	}
 
 	static std::vector<Order> deserialize_order_array(std::vector<char>& data)
@@ -133,7 +133,7 @@ struct Order
 		while (i < data.size())
 		{
 			int order_size = 0;
-			memcpy(&order_size, data.data(), 4);
+			memcpy(&order_size, data.data() + i, 4);
 
 			Order order;
 			order.order_id = order_count++;

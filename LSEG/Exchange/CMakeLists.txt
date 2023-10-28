@@ -1,6 +1,3 @@
-get_filename_component(PARENT_DIR ../ ABSOLUTE)
-include_directories(${PARENT_DIR}/include)
-
 SET (EXCHANGE_SOURCES
 	"src/exchange_app.cpp"
 	)
