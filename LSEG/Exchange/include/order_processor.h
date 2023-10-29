@@ -19,7 +19,10 @@ inline void process_orders(std::vector<Order> orders)
 
 	for (auto& order : orders)
 	{
-		order_books[order.instrument].add_order(order);
+		if(!order.rejected)
+			order_books[order.instrument].add_order(order);
+		else
+			report_generator.generate_reject_report(order);
 	}
 
 	std::cout << "Reports:\n";

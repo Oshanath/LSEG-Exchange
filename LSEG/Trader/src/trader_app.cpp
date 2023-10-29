@@ -67,7 +67,7 @@ void send_data(sockpp::tcp_connector& conn, std::vector<char>& data)
 
 int main()
 {
-	std::vector<Order> orders = read_orders("example6.csv");
+	std::vector<Order> orders = read_orders("validation.csv");
 	std::string host = "localhost";
 	in_port_t port = 8083;
 

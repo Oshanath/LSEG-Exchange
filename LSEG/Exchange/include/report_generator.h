@@ -37,14 +37,14 @@ struct Report
 	int order_id;
 	std::string client_order_id;
 	Instrument instrument;
-	Side side;
+	std::string side;
 	ReportExecutionStatus status;
 	int quantity;
 	float price;
 	std::string reason;
 	time_stamp ts;
 
-	Report(int order_id, std::string client_order_id, Instrument instrument, Side side, ReportExecutionStatus status, 
+	Report(int order_id, std::string client_order_id, Instrument instrument, std::string side, ReportExecutionStatus status, 
 		int quantity, float price, std::string reason, time_stamp ts)
 		: order_id(order_id), 
 		client_order_id(client_order_id), 
@@ -63,25 +63,32 @@ class ReportGenerator
 public:
 	inline void generate_normal_report(const OrderBookEntry* order)
 	{
-		reports.emplace_back(order->order_id, order->client_order_id, order->instrument, order->side, REPORT_NEW, order->quantity, order->price, "", order->ts);
+		reports.emplace_back(order->order_id, order->client_order_id, order->instrument, std::to_string(order->side), REPORT_NEW, order->quantity, order->price, "", order->ts);
 	}
 
 	inline void generate_fill_report(const OrderBookEntry* new_order, const OrderBookEntry* old_order, float price)
 	{
-		reports.emplace_back(new_order->order_id, new_order->client_order_id, new_order->instrument, new_order->side, REPORT_FILL, 
+		reports.emplace_back(new_order->order_id, new_order->client_order_id, new_order->instrument, std::to_string(new_order->side), REPORT_FILL,
 			new_order->quantity, price, "", new_order->ts);
 
-		reports.emplace_back(old_order->order_id, old_order->client_order_id, old_order->instrument, old_order->side, REPORT_FILL, 
+		reports.emplace_back(old_order->order_id, old_order->client_order_id, old_order->instrument, std::to_string(old_order->side), REPORT_FILL,
 			old_order->quantity, price, "", old_order->ts);
 	}
 
 	inline void generate_pfill_report(const OrderBookEntry* fill_order, const OrderBookEntry* pfill_order, int quantity, float price)
 	{
-		reports.emplace_back(pfill_order->order_id, pfill_order->client_order_id, pfill_order->instrument, pfill_order->side, 
+		reports.emplace_back(pfill_order->order_id, pfill_order->client_order_id, pfill_order->instrument, std::to_string(pfill_order->side),
 			REPORT_PFILL, quantity, price, "", pfill_order->ts);
 
-		reports.emplace_back(fill_order->order_id, fill_order->client_order_id, fill_order->instrument, fill_order->side, 
+		reports.emplace_back(fill_order->order_id, fill_order->client_order_id, fill_order->instrument, std::to_string(fill_order->side),
 			REPORT_FILL, quantity, price, "", fill_order->ts);
+	}
+
+	inline void generate_reject_report(Order order)
+	{
+		reports.emplace_back(order.order_id, order.client_order_id, order.instrument, order.side_string, REPORT_REJECTED, 
+			order.quantity, order.price, order.error, 
+			std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()));
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generator);

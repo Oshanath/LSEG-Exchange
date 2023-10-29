@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 using time_stamp = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
 
@@ -14,7 +15,8 @@ enum Instrument
 	LOTUS,
 	TULIP,
 	ORCHID,
-	count
+	count,
+	INVALID_INSTRUMENT
 };
 
 std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
@@ -36,40 +38,44 @@ std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
 	case ORCHID:
 		os << "Orchid";
 		break;
+	case INVALID_INSTRUMENT:
+		os << "";
+		break;
 	}
 	return os;
 }
 
-std::pair<Instrument, bool> get_instrument(std::string& name)
+Instrument get_instrument(std::string& name)
 {
 	if (name == "Rose")
-		return std::make_pair<Instrument,bool>(Instrument::ROSE, true);
+		return Instrument::ROSE;
 	else if (name == "Lavender")
-		return std::make_pair<Instrument, bool>(Instrument::LAVENDER, true);
+		return Instrument::LAVENDER;
 	else if (name == "Lotus")
-		return std::make_pair<Instrument, bool>(Instrument::LOTUS, true);
+		return Instrument::LOTUS;
 	else if (name == "Tulip")
-		return std::make_pair<Instrument, bool>(Instrument::TULIP, true);
+		return Instrument::TULIP;
 	else if (name == "Orchid")
-		return std::make_pair<Instrument, bool>(Instrument::ORCHID, true);
+		return Instrument::ORCHID;
 	else
-		return std::make_pair<Instrument, bool>(Instrument::ROSE, false);
+		return Instrument::INVALID_INSTRUMENT;
 }
 
 enum Side
 {
 	BUY = 1,
-	SELL = 2
+	SELL = 2,
+	INVALID_SIDE = 3
 };
 
-std::pair<Side,bool> get_side(std::string& name)
+Side get_side(std::string& side)
 {
-	if (name == "1")
-		return std::make_pair<Side, bool>(Side::BUY, true);
-	else if (name == "2")
-		return std::make_pair<Side, bool>(Side::SELL, true);
+	if (side == "1")
+		return Side::BUY;
+	else if (side == "2")
+		return Side::SELL;
 	else
-		return std::make_pair<Side, bool>(Side::BUY, false);
+		return Side::INVALID_SIDE;
 }
 
 std::ostream& operator<<(std::ostream& os, const Side& side)
@@ -99,29 +105,66 @@ struct Order
 	std::string client_order_id;
 	Instrument instrument;
 	Side side;
+	std::string side_string;
 	int quantity;
 	float price;
 	std::string trader_id;
+	std::string error;
+	bool rejected;
 
-	void deserialize(std::vector<char> data)
+	void deserialize_and_validate(std::vector<char> data)
 	{
 
 		int i = 0;
+		rejected = false;
+
 		client_order_id = deserialize_string(data, i);
+		if (!validate_string(client_order_id))
+		{
+			rejected = true;
+			error = "Client order ID not found";
+		}
 
 		std::string instrument_string = deserialize_string(data, i);
-		instrument = get_instrument(instrument_string).first;
+		instrument = get_instrument(instrument_string);
+		if (instrument == Instrument::INVALID_INSTRUMENT)
+		{
+			rejected = true;
+			error = "Invalid instrument";
+		}
 
-		std::string side_string = deserialize_string(data, i);
-		side = get_side(side_string).first;
+		side_string = deserialize_string(data, i);
+		side = get_side(side_string);
+		if (side == Side::INVALID_SIDE)
+		{
+			rejected = true;
+			error = "Invalid side";
+		}
 
 		std::string quantity_string = deserialize_string(data, i);
-		quantity = std::stoi(quantity_string);
+		std::tuple<bool, int, std::string> quantity_validation_result = validate_quantity(quantity_string);
+		if (!std::get<0>(quantity_validation_result))
+		{
+			rejected = true;
+			error = std::get<2>(quantity_validation_result);
+		}
+		quantity = std::get<1>(quantity_validation_result);
 
 		std::string price_string = deserialize_string(data, i);
-		price = std::stof(price_string);
+		std::tuple<bool, float, std::string> price_validation_result = validate_price(price_string);
+		if (!std::get<0>(price_validation_result))
+		{
+			rejected = true;
+			error = std::get<2>(price_validation_result);
+		}
+		price = std::get<1>(price_validation_result);
 
 		trader_id = deserialize_string(data, i);
+		if (!validate_string(trader_id))
+		{
+			rejected = true;
+			error = "Trader ID not found";
+		}
 	}
 
 	static std::vector<Order> deserialize_order_array(std::vector<char>& data)
@@ -137,13 +180,56 @@ struct Order
 
 			Order order;
 			order.order_id = order_count++;
-			order.deserialize(std::vector<char>(data.begin() + 4 + i, data.begin() + 4 + order_size + i));
+			order.deserialize_and_validate(std::vector<char>(data.begin() + 4 + i, data.begin() + 4 + order_size + i));
 			orders.push_back(order);
 
 			i += (4 + order_size);
 		}
 
 		return orders;
+	}
+
+private:
+	inline bool validate_string(std::string client_order_id)
+	{
+		if (client_order_id.empty())
+			return false;
+
+		return (!std::all_of(client_order_id.begin(), client_order_id.end(), [](unsigned char c) { return std::isspace(c); }));
+	}
+
+	inline std::tuple<bool, int, std::string> validate_quantity(std::string quantity_string)
+	{
+		std::string message("Invalid size");
+
+		bool is_int = std::all_of(quantity_string.begin(), quantity_string.end(), [](unsigned char c) { return std::isdigit(c); });
+
+		if (!is_int)
+			return std::make_tuple<bool, int, std::string>(false, 0, std::move(message));
+
+		int quantity = std::stoi(quantity_string);
+
+		if (quantity % 10 != 0 || quantity <= 10 || quantity >= 1000)
+			return std::make_tuple<bool, int, std::string>(false, std::move(quantity), std::move(message));
+
+		return std::make_tuple<bool, int, std::string>(true, std::move(quantity), "");
+	}
+
+	inline std::tuple<bool, float, std::string> validate_price(std::string price_string)
+	{
+		std::string message("Invalid price");
+
+		bool is_float = std::all_of(price_string.begin(), price_string.end(), [](unsigned char c) { return std::isdigit(c) || c == '.'; });
+
+		if (!is_float)
+			return std::make_tuple<bool, float, std::string>(false, 0, std::move(message));
+
+		float price = std::stof(price_string);
+
+		if (price <= 0.0f)
+			return std::make_tuple<bool, float, std::string>(false, std::move(price), std::move(message));
+
+		return std::make_tuple<bool, float, std::string>(true, std::move(price), "");
 	}
 };
 
