@@ -19,7 +19,7 @@ enum Instrument
 	INVALID_INSTRUMENT
 };
 
-std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
+inline std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
 {
 	switch (instrument)
 	{
@@ -45,7 +45,7 @@ std::ostream& operator<<(std::ostream& os, const Instrument& instrument)
 	return os;
 }
 
-Instrument get_instrument(std::string& name)
+inline Instrument get_instrument(const std::string& name)
 {
 	if (name == "Rose")
 		return Instrument::ROSE;
@@ -68,7 +68,7 @@ enum Side
 	INVALID_SIDE = 3
 };
 
-Side get_side(std::string& side)
+inline Side get_side(const std::string& side)
 {
 	if (side == "1")
 		return Side::BUY;
@@ -78,13 +78,13 @@ Side get_side(std::string& side)
 		return Side::INVALID_SIDE;
 }
 
-std::ostream& operator<<(std::ostream& os, const Side& side)
+inline std::ostream& operator<<(std::ostream& os, const Side& side)
 {
 	os << int(side);
 	return os;
 }
 
-std::string deserialize_string(const std::vector<char>& data, int& i)
+inline std::string deserialize_string(const std::vector<char>& data, int& i)
 {
 	std::stringstream ss;
 
@@ -112,7 +112,7 @@ struct Order
 	std::string error;
 	bool rejected;
 
-	void deserialize_and_validate(std::vector<char> data)
+	inline void deserialize_and_validate(std::vector<char> data)
 	{
 
 		int i = 0;
@@ -167,7 +167,7 @@ struct Order
 		}
 	}
 
-	static std::vector<Order> deserialize_order_array(std::vector<char>& data)
+	inline static std::vector<Order> deserialize_order_array(const std::vector<char>& data)
 	{
 		std::vector<Order> orders;
 		int i = 0;
@@ -190,7 +190,7 @@ struct Order
 	}
 
 private:
-	inline bool validate_string(std::string client_order_id)
+	inline bool validate_string(const std::string& client_order_id) const
 	{
 		if (client_order_id.empty())
 			return false;
@@ -198,7 +198,7 @@ private:
 		return (!std::all_of(client_order_id.begin(), client_order_id.end(), [](unsigned char c) { return std::isspace(c); }));
 	}
 
-	inline std::tuple<bool, int, std::string> validate_quantity(std::string quantity_string)
+	inline std::tuple<bool, int, std::string> validate_quantity(const std::string& quantity_string) const
 	{
 		std::string message("Invalid size");
 
@@ -215,7 +215,7 @@ private:
 		return std::make_tuple<bool, int, std::string>(true, std::move(quantity), "");
 	}
 
-	inline std::tuple<bool, float, std::string> validate_price(std::string price_string)
+	inline std::tuple<bool, float, std::string> validate_price(const std::string& price_string) const
 	{
 		std::string message("Invalid price");
 
@@ -247,7 +247,7 @@ struct OrderBookEntry : public Order
 	friend std::ostream& operator<<(std::ostream& os, const OrderBookEntry& order_book_entry);
 };
 
-std::ostream& operator<<(std::ostream& os, const OrderBookEntry& order_book_entry)
+inline std::ostream& operator<<(std::ostream& os, const OrderBookEntry& order_book_entry)
 {
 	os << order_book_entry.order_id << " " << order_book_entry.client_order_id << " " << 
 		order_book_entry.instrument << " " << order_book_entry.side << " " << 
@@ -278,7 +278,7 @@ struct SellOrder : public OrderBookEntry
 	friend bool operator < (const SellOrder& lhs, const SellOrder& rhs);
 };
 
-bool operator < (const BuyOrder& lhs, const BuyOrder& rhs)
+inline bool operator < (const BuyOrder& lhs, const BuyOrder& rhs)
 {
 	if (lhs.price != rhs.price)
 		return lhs.price > rhs.price;
@@ -286,7 +286,7 @@ bool operator < (const BuyOrder& lhs, const BuyOrder& rhs)
 		return lhs.ts < rhs.ts;
 }
 
-bool operator < (const SellOrder& lhs, const SellOrder& rhs)
+inline bool operator < (const SellOrder& lhs, const SellOrder& rhs)
 {
 	if (lhs.price != rhs.price)
 		return lhs.price < rhs.price;

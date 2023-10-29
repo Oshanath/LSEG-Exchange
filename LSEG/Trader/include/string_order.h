@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-void serialize_string(std::string& string, std::vector<char>& data)
+inline void serialize_string(const std::string& string, std::vector<char>& data)
 {
 	for (int i = 0; i < string.length(); i++)
 		data.push_back(string[i]);
@@ -21,7 +21,7 @@ struct Order
 	std::string price;
 	std::string trader_id;
 
-	std::vector<char> serialize()
+	inline std::vector<char> serialize()
 	{
 		std::vector<char> data;
 		

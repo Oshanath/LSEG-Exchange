@@ -1,3 +1,6 @@
+#ifndef ORDER_BOOK_H
+#define ORDER_BOOK_H
+
 #include <set>
 #include <iostream>
 #include <memory>
@@ -12,7 +15,7 @@ class OrderBook
 public:
 	inline OrderBook(ReportGenerator& report_generator) : report_generator(report_generator) {}
 
-	inline void add_order(Order order, bool pfill = false)
+	inline void add_order(Order& order, bool pfill = false)
 	{
 
 		ExecutionType execution_type = get_execution_type(order);
@@ -106,7 +109,7 @@ private:
 	std::set<SellOrder> sell_orders;
 	ReportGenerator& report_generator;
 
-	bool is_aggressive(Order& order)
+	inline bool is_aggressive(const Order& order) const
 	{
 		auto sell_top = sell_orders.begin();
 		auto buy_top = buy_orders.begin();
@@ -120,7 +123,7 @@ private:
 		return true;
 	}
 
-	ExecutionType get_execution_type(Order& new_order)
+	inline ExecutionType get_execution_type(const Order& new_order) const
 	{
 
 		if (!is_aggressive(new_order))
@@ -150,7 +153,7 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream& os, const OrderBook& order_book)
+inline std::ostream& operator<<(std::ostream& os, const OrderBook& order_book)
 {
 	os << "Buy orders:\n";
 	for (auto& buy_order : order_book.buy_orders)
@@ -168,3 +171,5 @@ std::ostream& operator<<(std::ostream& os, const OrderBook& order_book)
 
 	return os;
 }
+
+#endif // ORDER_BOOK_H

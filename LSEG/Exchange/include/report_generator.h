@@ -1,3 +1,6 @@
+#ifndef REPORT_GENERATOR_H
+#define REPORT_GENERATOR_H
+
 #include "order.h"
 
 #include <string>
@@ -12,7 +15,7 @@ enum ReportExecutionStatus
 	REPORT_PFILL
 };
 
-std::ostream& operator<<(std::ostream& os, const ReportExecutionStatus& status)
+inline std::ostream& operator<<(std::ostream& os, const ReportExecutionStatus& status)
 {
 	switch (status)
 	{
@@ -44,7 +47,7 @@ struct Report
 	std::string reason;
 	time_stamp ts;
 
-	Report(int order_id, std::string client_order_id, Instrument instrument, std::string side, ReportExecutionStatus status, 
+	inline Report(int order_id, std::string client_order_id, Instrument instrument, std::string side, ReportExecutionStatus status, 
 		int quantity, float price, std::string reason, time_stamp ts)
 		: order_id(order_id), 
 		client_order_id(client_order_id), 
@@ -97,7 +100,7 @@ private:
 	std::vector<Report> reports;
 };
 
-std::ostream& operator<<(std::ostream& os, const Report& report)
+inline std::ostream& operator<<(std::ostream& os, const Report& report)
 {
 
 	auto tp = std::chrono::zoned_time{ std::chrono::current_zone(), report.ts }.get_local_time();
@@ -125,7 +128,7 @@ std::ostream& operator<<(std::ostream& os, const Report& report)
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generator)
+inline std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generator)
 {
 	for (auto& report : report_generator.reports)
 	{
@@ -133,3 +136,5 @@ std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generat
 	}
 	return os;
 }
+
+#endif // !REPORT_GENERATOR_H

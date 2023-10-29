@@ -1,9 +1,12 @@
+#ifndef ORDER_PROCESSOR_H
+#define ORDER_PROCESSOR_H
+
 #include "order_book.h"
 #include "order.h"
 
 #include <vector>
 
-inline void print_order_books(std::vector<OrderBook> order_books)
+inline void print_order_books(const std::vector<OrderBook>& order_books)
 {
 	for (int i = 0; i < order_books.size(); i++)
 	{
@@ -12,7 +15,7 @@ inline void print_order_books(std::vector<OrderBook> order_books)
 	}
 }
 
-inline void process_orders(std::vector<Order> orders)
+inline void process_orders(std::vector<Order>& orders)
 {
 	ReportGenerator report_generator;
 	std::vector<OrderBook> order_books(Instrument::count, report_generator);
@@ -28,3 +31,5 @@ inline void process_orders(std::vector<Order> orders)
 	std::cout << "Reports:\n";
 	std::cout << report_generator;
 }
+
+#endif // !ORDER_PROCESSOR_H
