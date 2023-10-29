@@ -7,7 +7,7 @@
 #include "rapidcsv.h"
 #include "sockpp/tcp_connector.h"
 
-std::vector<Order> read_orders(std::string filename);
+std::pair<std::vector<Order>, bool> read_orders(std::string filename);
 
 void send_data_size(sockpp::tcp_connector& conn, unsigned int size)
 {
@@ -67,12 +67,19 @@ void send_data(sockpp::tcp_connector& conn, std::vector<char>& data)
 
 int main()
 {
-	std::vector<Order> orders = read_orders("validation.csv");
 	std::string host = "localhost";
 	in_port_t port = 8083;
 
 	while (true)
 	{
+		std::string filename;
+		std::cout << "Enter filename: ";
+		getline(std::cin, filename);
+		std::pair<std::vector<Order>, bool> orders = read_orders(filename);
+		
+		if (!orders.second)
+			continue;
+
 		sockpp::initialize();
 		sockpp::tcp_connector conn({ host, port }, std::chrono::seconds{ 5 });
 		if (!conn) {
@@ -91,7 +98,7 @@ int main()
 				<< conn.last_error_str() << std::endl;
 		}
 
-		std::vector<char> data = serialize_data(orders);
+		std::vector<char> data = serialize_data(orders.first);
 		send_data_size(conn, data.size());
 		send_data(conn, data);
 
@@ -101,22 +108,33 @@ int main()
 
 }
 
-std::vector<Order> read_orders(std::string filename)
+std::pair<std::vector<Order>, bool> read_orders(std::string filename)
 {
-	rapidcsv::Document doc(filename);
+	std::unique_ptr<rapidcsv::Document> doc;
+
+	try
+	{
+		doc = std::make_unique<rapidcsv::Document>(filename);
+	}
+	catch (std::exception e)
+	{
+		std::cout << "Error reading file: " << e.what() << std::endl;
+		return std::make_pair<std::vector<Order>, bool>(std::vector<Order>(), false);
+	}
+
 	std::vector<Order> orders;
 
-	for (int i = 0; i < doc.GetRowCount(); i++)
+	for (int i = 0; i < doc->GetRowCount(); i++)
 	{
 		Order order;
-		order.client_order_id = doc.GetCell<std::string>(0, i);
-		order.instrument = doc.GetCell<std::string>(1, i);
-		order.side = doc.GetCell<std::string>(2, i);
-		order.quantity = doc.GetCell<std::string>(3, i);
-		order.price = doc.GetCell<std::string>(4, i);
-		order.trader_id = doc.GetCell<std::string>(5, i);
+		order.client_order_id = doc->GetCell<std::string>(0, i);
+		order.instrument = doc->GetCell<std::string>(1, i);
+		order.side = doc->GetCell<std::string>(2, i);
+		order.quantity = doc->GetCell<std::string>(3, i);
+		order.price = doc->GetCell<std::string>(4, i);
+		order.trader_id = doc->GetCell<std::string>(5, i);
 		orders.push_back(order);
 	}
 
-	return orders;
+	return std::make_pair<std::vector<Order>, bool>(std::move(orders), true);
 }

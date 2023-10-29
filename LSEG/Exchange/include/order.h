@@ -202,7 +202,7 @@ private:
 	{
 		std::string message("Invalid size");
 
-		bool is_int = std::all_of(quantity_string.begin(), quantity_string.end(), [](unsigned char c) { return std::isdigit(c); });
+		bool is_int = std::all_of(quantity_string.begin(), quantity_string.end(), [](unsigned char c) { return std::isdigit(c) || c == '-';  });
 
 		if (!is_int)
 			return std::make_tuple<bool, int, std::string>(false, 0, std::move(message));
@@ -219,7 +219,7 @@ private:
 	{
 		std::string message("Invalid price");
 
-		bool is_float = std::all_of(price_string.begin(), price_string.end(), [](unsigned char c) { return std::isdigit(c) || c == '.'; });
+		bool is_float = std::all_of(price_string.begin(), price_string.end(), [](unsigned char c) { return std::isdigit(c) || c == '.' || c == '-';  });
 
 		if (!is_float)
 			return std::make_tuple<bool, float, std::string>(false, 0, std::move(message));
