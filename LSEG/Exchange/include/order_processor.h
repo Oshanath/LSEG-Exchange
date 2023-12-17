@@ -15,7 +15,7 @@ inline void print_order_books(const std::vector<OrderBook>& order_books)
 	}
 }
 
-inline void process_orders(std::vector<Order>& orders)
+inline ReportGenerator process_orders(std::vector<Order>& orders)
 {
 	ReportGenerator report_generator;
 	std::vector<OrderBook> order_books(Instrument::count, report_generator);
@@ -28,8 +28,7 @@ inline void process_orders(std::vector<Order>& orders)
 			report_generator.generate_reject_report(order);
 	}
 
-	std::cout << "Reports:\n";
-	std::cout << report_generator;
+	return report_generator;
 }
 
 #endif // !ORDER_PROCESSOR_H

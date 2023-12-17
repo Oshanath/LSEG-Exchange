@@ -54,7 +54,10 @@ void connection_callback(sockpp::tcp_socket sock)
 		std::cout << order.client_order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
 	}
 
-	process_orders(orders);
+	ReportGenerator report_generator = process_orders(orders);
+	std::string report = report_generator.to_string();
+	
+	
 }
 
 int main(int argc, char* argv[])

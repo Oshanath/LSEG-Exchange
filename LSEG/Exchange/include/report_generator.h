@@ -124,6 +124,17 @@ public:
 			std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()));
 	}
 
+	inline std::string to_string() const
+	{
+		std::stringstream os;
+
+		for (auto& report : reports)
+		{
+			os << report.to_string() << "\n";
+		}
+		return os.str();
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generator);
 
 private:
@@ -138,10 +149,7 @@ inline std::ostream& operator<<(std::ostream& os, const Report& report)
 
 inline std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generator)
 {
-	for (auto& report : report_generator.reports)
-	{
-		os << report << "\n";
-	}
+	os << report_generator.to_string();
 	return os;
 }
 
