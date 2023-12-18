@@ -15,7 +15,10 @@ void send_data_size(sockpp::tcp_connector& conn, unsigned int size)
 	unsigned char s[4], sret[1];
 
 	unsigned int data_size = size;
-	memcpy(s, &data_size, 4);
+	s[0] = data_size >> 24;
+	s[1] = data_size >> 16;
+	s[2] = data_size >> 8;
+	s[3] = data_size;
 
 	if (conn.write(s, 4) != 4) {
 		std::cerr << "Error writing to the TCP stream: "
@@ -102,7 +105,22 @@ int main()
 		send_data_size(conn, data.size());
 		send_data(conn, data);
 
+		unsigned char report_size_buf[4];
+		conn.read_n(report_size_buf, 4);
+		size_t report_size = 0;
+		report_size = (size_t(report_size_buf[0]) << 24) | (size_t(report_size_buf[1]) << 16) | (size_t(report_size_buf[2]) << 8) | size_t(report_size_buf[3]);
 		
+		std::cout << "report size = " << report_size << " " << report_size << "\n";
+
+		std::vector<char> report_data;
+		report_data.resize(report_size);
+		conn.read_n(report_data.data(), report_size);
+		std::string report = std::string(report_data.begin(), report_data.end());
+
+
+		std::ofstream output_file(filename.substr(0, filename.length() - 4) + "_report.txt");
+		output_file << report;
+		output_file.close();
 
 		std::string a;
 		getline(std::cin, a);

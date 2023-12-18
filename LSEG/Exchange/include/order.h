@@ -176,7 +176,8 @@ struct Order
 		while (i < data.size())
 		{
 			int order_size = 0;
-			memcpy(&order_size, data.data() + i, 4);
+			//memcpy(&order_size, data.data() + i, 4);
+			order_size = (data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3];
 
 			Order order;
 			order.order_id = order_count++;

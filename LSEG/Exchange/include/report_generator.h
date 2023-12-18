@@ -135,6 +135,11 @@ public:
 		return os.str();
 	}
 
+	inline unsigned int get_count() const
+	{
+		return reports.size();
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const ReportGenerator& report_generator);
 
 private:
