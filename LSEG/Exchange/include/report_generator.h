@@ -119,8 +119,8 @@ inline std::ostream& operator<<(std::ostream& os, const Report& report)
 		report.side << "," << report.status << "," << report.quantity << "," <<
 		std::fixed << std::setprecision(2) << report.price << "," << report.reason << "," <<
 		std::setprecision(4) << y << 
-		std::setprecision(2) << unsigned(m) << 
-		std::setprecision(2) << d << "-" << 
+		std::setprecision(2) << (unsigned(m) <= 9 ? "0": "") << unsigned(m) <<
+		std::setprecision(2) << (unsigned(d) <= 9 ? "0" : "") << unsigned(d) << "-" <<
 		std::setprecision(2) << h.count() << 
 		std::setprecision(2) << M.count() << 
 		std::setprecision(2) << s.count() << "." << 

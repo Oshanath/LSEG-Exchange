@@ -5,6 +5,7 @@
 #include "order.h"
 
 #include <vector>
+#include <fstream>
 
 inline void print_order_books(const std::vector<OrderBook>& order_books)
 {
@@ -30,6 +31,11 @@ inline void process_orders(std::vector<Order>& orders)
 
 	std::cout << "Reports:\n";
 	std::cout << report_generator;
+
+	std::ofstream file("output.csv");
+	file << "Order ID, Client Order, Instrument, Side, Exec Status, Quantity, Price, Reason, Timestamp\n";
+	file << report_generator;
+	file.close();
 }
 
 #endif // !ORDER_PROCESSOR_H
