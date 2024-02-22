@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <array>
 #include <vector>
 
 #include "sockpp/tcp_acceptor.h"
@@ -28,7 +29,7 @@ void connection_callback(sockpp::tcp_socket sock)
 	}
 
 	// construct data size
-	memcpy(&size, data_size_buf, 4);
+	size = (data_size_buf[0] << 24) | (data_size_buf[1] << 16) | (data_size_buf[2] << 8) | data_size_buf[3];
 	std::cout << "Data size = " << size << " bytes.\n";
 
 	// read data
@@ -49,12 +50,20 @@ void connection_callback(sockpp::tcp_socket sock)
 	std::vector<Order> orders = Order::deserialize_order_array(data_vec);
 	delete[] data;
 
-	for (auto& order : orders)
-	{
-		std::cout << order.client_order_id << " " << order.instrument << " " << order.side << " " << order.quantity << " " << order.price << " " << order.trader_id << std::endl;
-	}
+	ReportGenerator report_generator = process_orders(orders);
+	std::cout << "number of reports = " << report_generator.get_count();
+	std::string report = report_generator.to_string();
+	
+	std::array<unsigned char, 4> send_size_bytes;
+	send_size_bytes[0] = (report.size() >> 24) & 0xFF;
+	send_size_bytes[1] = (report.size() >> 16) & 0xFF;
+	send_size_bytes[2] = (report.size() >> 8) & 0xFF;
+	send_size_bytes[3] = report.size() & 0xFF;
 
-	process_orders(orders);
+	sock.write_n(send_size_bytes.data(), 4);
+	sock.write_n(report.c_str(), report.size() + 1);
+
+	sock.close();
 }
 
 int main(int argc, char* argv[])

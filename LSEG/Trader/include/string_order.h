@@ -4,12 +4,24 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <array>
 
 inline void serialize_string(const std::string& string, std::vector<char>& data)
 {
 	for (int i = 0; i < string.length(); i++)
 		data.push_back(string[i]);
 	data.push_back('\0');
+}
+
+inline std::array<unsigned char, 4> serialize_int(int value)
+{
+	// Endianness independent
+	std::array<unsigned char, 4> bytes;
+	bytes[0] = value >> 24;
+	bytes[1] = value >> 16;
+	bytes[2] = value >> 8;
+	bytes[3] = value;
+	return bytes;
 }
 
 struct Order 
@@ -36,8 +48,10 @@ struct Order
 
 		// first 4 bytes contain data size and then whole data vector
 		final_data.resize(4 + data.size());
+
 		int size = data.size();
-		memcpy(final_data.data(), &size, 4);
+		std::array<unsigned char, 4> bytes = serialize_int(size);
+		memcpy(final_data.data(), bytes.data(), 4);
 		memcpy(final_data.data() + 4, data.data(), data.size());
 
 		return final_data;
